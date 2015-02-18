@@ -9,16 +9,22 @@
 namespace terrasoff\yii\components;
 
 use CApplicationComponent;
+use CDbConnection;
 use Exception;
 use Yii;
 
 class MysqlHelperComponent extends CApplicationComponent
 {
     /**
-     * @var string CDbConnectioncomponent's id
+     * @var string идентификатор компонента для соединения с БД
      */
     public $connectionId = 'db';
 
+    /**
+     * Компонент для соединения с БД, соответствующее идентификатору
+     *
+     * @var CDbConnection|null
+     */
     public $connection = null;
 
     public function init()
