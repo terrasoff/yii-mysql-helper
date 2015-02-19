@@ -15,6 +15,11 @@ use Yii;
 
 class MysqlHelperComponent extends CApplicationComponent
 {
+    public static function className()
+    {
+        return get_called_class();
+    }
+
     /**
      * @var string идентификатор компонента для соединения с БД
      */
@@ -27,13 +32,39 @@ class MysqlHelperComponent extends CApplicationComponent
      */
     public $connection = null;
 
-    public function init()
+    /**
+     * @param CDbConnection $connection
+     * @return $this
+     */
+    public function setConnection(CDbConnection $connection)
     {
-        if (!($this->connection = Yii::app()->getComponent($this->connectionId))) {
-            throw new Exception(sprintf("Wrong database connection %s", $this->connectionId));
+        $this->connection = $connection;
+
+        return $this;
+    }
+
+    /**
+     * @return CDbConnection
+     *
+     * @throws Exception
+     */
+    public function getConnection()
+    {
+        if ($this->connection === null) {
+            $this->connection = Yii::app()->{$this->connectionId};
+            if ($this->connection === null) {
+                throw new Exception(sprintf("Wrong database connection %s", $this->connectionId));
+            }
         }
 
-        parent::init();
+        return $this->connection;
+    }
+
+    public static function getConnectionConfig(CDbConnection $connection, $param)
+    {
+        preg_match("/{$param}=([^;|^$]+)/", $connection->connectionString, $matches);
+
+        return $matches[1];
     }
 
     /**
@@ -43,15 +74,19 @@ class MysqlHelperComponent extends CApplicationComponent
      */
     public function backup($filename = null)
     {
+        $connection = $this->getConnection();
+        $host = self::getConnectionConfig($connection, 'host');
+        $dbname = self::getConnectionConfig($connection, 'dbname');
+
         if ($filename === null) {
-            $filename = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $this->dbname . date("Y-m-d-H-i-s") . '.sql';
+            $filename = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $dbname . date("Y-m-d-H-i-s") . '.sql';
         }
 
         $command = sprintf("mysqldump -h%s -u%s -p%s '%s' > %s",
-            $this->connection->host,
-            $this->connection->username,
-            $this->connection->password,
-            $this->connection->dbname,
+            $host,
+            $connection->username,
+            $connection->password,
+            $dbname,
             $filename
         );
 
@@ -65,16 +100,21 @@ class MysqlHelperComponent extends CApplicationComponent
     /**
      * Восстанавливаем сохраненое состояние БД
      *
-     * @param string имя файла с бэкапом
+     * @param $filename string имя файла с бэкапом
+     *
      * @return string|false
      */
     public function restore($filename)
     {
+        $connection = $this->getConnection();
+        $host = self::getConnectionConfig($connection, 'host');
+        $dbname = self::getConnectionConfig($connection, 'dbname');
+        
         $command = sprintf("mysql -h%s -u%s -p%s '%s' < %s",
-            $this->connection->host,
-            $this->connection->username,
-            $this->connection->password,
-            $this->connection->dbname,
+            $host,
+            $connection->username,
+            $connection->password,
+            $dbname,
             $filename
         );
 
