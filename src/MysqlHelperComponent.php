@@ -1,6 +1,5 @@
 <?php
 /**
- *
  * Author: terrasoff
  * Email: terrasoff@terrasoff.ru
  * Skype: tarasov.konstantin
@@ -13,6 +12,12 @@ use CDbConnection;
 use Exception;
 use Yii;
 
+/**
+ * Set of mysql database routines
+ *
+ * Class MysqlHelperComponent
+ * @package terrasoff\yii\components
+ */
 class MysqlHelperComponent extends CApplicationComponent
 {
     public static function className()
@@ -21,18 +26,20 @@ class MysqlHelperComponent extends CApplicationComponent
     }
 
     /**
-     * @var string идентификатор компонента для соединения с БД
+     * @var string component identifier
      */
     public $connectionId = 'db';
 
     /**
-     * Компонент для соединения с БД, соответствующее идентификатору
+     * Component to connect mysql database with identifier $connectionId
      *
      * @var CDbConnection|null
      */
     public $connection = null;
 
     /**
+     * Set custom connection
+     *
      * @param CDbConnection $connection
      * @return $this
      */
@@ -44,8 +51,9 @@ class MysqlHelperComponent extends CApplicationComponent
     }
 
     /**
-     * @return CDbConnection
+     * Current connection
      *
+     * @return CDbConnection
      * @throws Exception
      */
     public function getConnection()
@@ -60,6 +68,18 @@ class MysqlHelperComponent extends CApplicationComponent
         return $this->connection;
     }
 
+    /**
+     * Get specified connection config by DSN connection string of component
+     * For example,
+     * <code>
+     * self::getConnectionConfig($connection, 'host');
+     * </code>
+     *
+     * @param CDbConnection $connection
+     *
+     * @param $param
+     * @return mixed
+     */
     public static function getConnectionConfig(CDbConnection $connection, $param)
     {
         preg_match("/{$param}=([^;|^$]+)/", $connection->connectionString, $matches);
@@ -68,7 +88,9 @@ class MysqlHelperComponent extends CApplicationComponent
     }
 
     /**
-     * Сохраняем состояние БД
+     * Save database state into file
+     *
+     * @var $filename string имя файла с дампом
      *
      * @return string|false имя файла с бэкапом в случае удачного сохранения
      */
@@ -79,7 +101,8 @@ class MysqlHelperComponent extends CApplicationComponent
         $dbname = self::getConnectionConfig($connection, 'dbname');
 
         if ($filename === null) {
-            $filename = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $dbname . date("Y-m-d-H-i-s") . '.sql';
+            $filename = sys_get_temp_dir() . DIRECTORY_SEPARATOR .
+                $dbname . '-' . date("Y-m-d-H-i-s") . '.sql';
         }
 
         $command = sprintf("mysqldump -h%s -u%s -p%s '%s' > %s",
@@ -92,13 +115,13 @@ class MysqlHelperComponent extends CApplicationComponent
 
         $result = system($command);
 
-        return $result
+        return $result !== false
             ? $filename
             : false;
     }
 
     /**
-     * Восстанавливаем сохраненое состояние БД
+     * Restore database state from file
      *
      * @param $filename string имя файла с бэкапом
      *
